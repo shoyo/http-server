@@ -1,4 +1,5 @@
 use std::io::prelude::*;
+use std::fs;
 use std::net::TcpListener;
 use std::net::TcpStream;
 
@@ -16,5 +17,21 @@ fn handle_connection(mut stream: TcpStream) {
     let mut buffer = [0; 512];
     stream.read(&mut buffer).unwrap();
 
-    println!("Request: {}", String::from_utf8_lossy(&buffer[..]));
+    let get = b"GET / HTTP/1.1\r\n";
+
+    let response;
+    if buffer.starts_with(get) {
+        response = construct_response("200 OK", "templates/hello.html");
+    } else {
+        response = construct_response("404 NOT FOUND", "templates/404.html");
+    }
+    stream.write(response.as_bytes()).unwrap();
+    stream.flush().unwrap();
+}
+
+fn construct_response(status: &str, template_path: &str) -> String {
+    let protocol = "HTTP/1.1";
+    let contents = fs::read_to_string(&template_path).unwrap();
+    let response = format!("{} {}\r\n\r\n{}", protocol, &status, contents);
+    response
 }
